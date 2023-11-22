@@ -4,16 +4,15 @@ from email import policy
 from email.parser import BytesParser
 
 def get_body(message):
-    if message.is_multipart():
-        for part in message.walk():
-            if part.is_multipart():
-                for subpart in part.walk():
-                    if subpart.get_content_type() == 'text/plain':
-                        return subpart.get_payload(decode=True)
-            elif part.get_content_type() == 'text/plain':
-                return part.get_payload(decode=True)
-    else:
+    if not message.is_multipart():
         return message.get_payload(decode=True)
+    for part in message.walk():
+        if part.is_multipart():
+            for subpart in part.walk():
+                if subpart.get_content_type() == 'text/plain':
+                    return subpart.get_payload(decode=True)
+        elif part.get_content_type() == 'text/plain':
+            return part.get_payload(decode=True)
 
 def mbox_to_csv(mbox_file_path, csv_file_path):
     mbox = mailbox.mbox(mbox_file_path)

@@ -16,11 +16,9 @@ def load_csv(file_path):
     # Open the CSV file and read its content
     with open(file_path, 'r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
-        
-        # For each row, append it as a dictionary to the list
-        for row in csv_reader:
-            data_list.append(row)
 
+        # For each row, append it as a dictionary to the list
+        data_list.extend(iter(csv_reader))
     return data_list
 
 def extract_faq(text_data):
@@ -63,9 +61,7 @@ def extract_faq(text_data):
                                         )
 
     output = summary_chain.run(docs)
-    faqs = json.loads(output)
-
-    return faqs
+    return json.loads(output)
 
 def save_json_to_csv(data, file_name):
     with open(file_name, mode='w', newline='', encoding='utf-8') as file:
