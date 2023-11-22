@@ -45,9 +45,7 @@ def check_consulting_email(lates_reply: str):
         ]
     )
 
-    all_needs_collected = all_needs_collected_result["choices"][0]["message"]["content"]
-
-    return all_needs_collected
+    return all_needs_collected_result["choices"][0]["message"]["content"]
 
 
 def categorise_email(lates_reply: str):
@@ -79,31 +77,30 @@ def categorise_email(lates_reply: str):
 
     category = category_result["choices"][0]["message"]["content"]
 
-    if category == "JOB_OFFER/CONSULTING":
+    if category == "COLLABORATION/SPONSORSHIP":
+        return {
+            "Step 1": "Research about the prospect & company",
+            "Step 2": "Forward the email to jason.zhou.design@gmail.com, with the research results included"
+        }
+    elif category == "JOB_OFFER/CONSULTING":
         all_needs_collected = check_consulting_email(lates_reply)
-        if all_needs_collected == "YES":
-            return {
+        return (
+            {
                 "Step 1": """Forward the email to jason.zhou.design@gmail.com, with summary of 1.What's the problem the prospect is trying to solve?  2.Their budget"""
             }
-        else:
-            return {
+            if all_needs_collected == "YES"
+            else {
                 "Step 1": "Generate email response to the prospect to collect further info based on guidelines",
                 "Step 2": "Send generated email response to prospect",
             }
+        )
+    elif category == "NON_REPLY":
+        return "This email has already been taken care of or replied before, nothing needs to be done now"
     else:
-        if category == "COLLABORATION/SPONSORSHIP":
-            return {
-                "Step 1": "Research about the prospect & company",
-                "Step 2": "Forward the email to jason.zhou.design@gmail.com, with the research results included"
-            }
-        else:
-            if category == "NON_REPLY":
-                return f"This email has already been taken care of or replied before, nothing needs to be done now"
-            else:
-                return {
-                    "Step 1": "Generate email response based on guidelines",
-                    "Step 2": "Create email draft with the generated response"
-                }
+        return {
+            "Step 1": "Generate email response based on guidelines",
+            "Step 2": "Create email draft with the generated response"
+        }
 
 
 class CategoriseEmailInput(BaseModel):
@@ -189,9 +186,7 @@ def summary(objective, content):
         verbose=False
     )
 
-    output = summary_chain.run(input_documents=docs, objective=objective)
-
-    return output
+    return summary_chain.run(input_documents=docs, objective=objective)
 
 
 def scrape_website(objective: str, url: str):
@@ -216,17 +211,11 @@ def scrape_website(objective: str, url: str):
     response = requests.post(
         "https://chrome.browserless.io/content?token=xxxxxxxxxxxxxxxxxxxxxxxxxxx", headers=headers, data=data_json)
 
-    # Check the response status code
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, "html.parser")
-        text = soup.get_text()
-        if len(text) > 10000:
-            output = summary(objective, text)
-            return output
-        else:
-            return text
-    else:
+    if response.status_code != 200:
         return f"HTTP request failed with status code {response.status_code}"
+    soup = BeautifulSoup(response.content, "html.parser")
+    text = soup.get_text()
+    return summary(objective, text) if len(text) > 10000 else text
 
 
 class ScrapeWebsiteInput(BaseModel):
@@ -307,9 +296,7 @@ def prospect_research(email_or_name: str, company: str):
 
     message = f"Research about {company} and {email_or_name}; What does the company do, and who the person is"
 
-    result = agent({"input": message})
-
-    return result
+    return agent({"input": message})
 
 
 class ProspectResearchInput(BaseModel):
@@ -379,25 +366,6 @@ class EscalateTool(BaseTool):
 # REPLY EMAIL
 def reply_email(message: str, email_address: str, subject: str):
     return f"An email has been sent to {email_address}"
-
-    # URL to send the POST request to
-    url = 'https://hooks.zapier.com/hooks/catch/15616669/38qaaau/'
-
-    # Data to send in the POST request
-    data = {
-        "Email": email_address,
-        "Subject": subject,
-        "Reply": message
-    }
-
-    # Send the POST request
-    response = requests.post(url, data=data)
-
-    # Check the response
-    if response.status_code == 200:
-        return ('Email reply has been created successfully')
-    else:
-        return ('Failed to send POST request:', response.status_code)
 
 
 class ReplyEmailInput(BaseModel):
